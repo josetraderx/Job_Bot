@@ -1,6 +1,6 @@
-import feedparser, re, smtplib, os
+import feedparser, re, smtplib, os, time, schedule
 from email.message import EmailMessage
-from datetime import date
+from datetime import date, datetime
 
 # --- CONFIGURA ---
 KEYWORDS = re.compile(r"(remote|telecommute|work from home).*(junior|entry.level|graduate|associate|trainee)?.*(data scientist|data engineer|quantitative developer|quant developer|quantitative analyst|quant analyst)|"
@@ -132,8 +132,9 @@ def send_email(lines):
         print(f"Email error: {str(e)}")
         raise
 
-if __name__ == "__main__":
-    print("=== JOB BOT STARTED ===")
+def run_bot():
+    """Ejecuta el bot una vez"""
+    print(f"=== JOB BOT STARTED === {datetime.now()}")
     print(f"EMAIL_FROM: {EMAIL_FROM}")
     print(f"EMAIL_TO: {EMAIL_TO}")
     print(f"APP_PASSWORD: {'*' * len(APP_PASSWORD) if APP_PASSWORD else 'None'}")
@@ -149,8 +150,24 @@ if __name__ == "__main__":
     else:
         print("❌ No jobs found matching criteria.")
         
-    print("=== JOB BOT FINISHED ===")
+    print(f"=== JOB BOT FINISHED === {datetime.now()}")
+
+if __name__ == "__main__":
+    print("🚀 Job Bot Worker Service Started")
+    print("⏰ Scheduled to run at 8:00 AM and 8:00 PM VET")
+    print("🌍 VET = UTC-4, so running at 12:00 PM and 12:00 AM UTC")
     
-    # Mantener el contenedor vivo un poco más para ver logs
-    import time
-    time.sleep(5)
+    # Programar las ejecuciones
+    schedule.every().day.at("12:00").do(run_bot)  # 8:00 AM VET
+    schedule.every().day.at("00:00").do(run_bot)  # 8:00 PM VET
+    
+    # Ejecutar inmediatamente para probar
+    print("🧪 Running test execution...")
+    run_bot()
+    
+    print("⏳ Worker ready, waiting for scheduled times...")
+    
+    # Loop principal
+    while True:
+        schedule.run_pending()
+        time.sleep(60)  # Revisar cada minuto
