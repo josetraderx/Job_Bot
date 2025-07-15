@@ -1,11 +1,26 @@
-import feedparser, re, smtplib, os, time
+import feedparser, re, smtplib, os, time, sys, traceback
 from email.message import EmailMessage
 from datetime import date, datetime
 
+# Configurar logging extensivo
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+# Capturar errores no manejados
+def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
+    logging.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+sys.excepthook = log_uncaught_exceptions
+
 try:
     import schedule
+    logging.info("✅ Schedule library loaded successfully")
 except ImportError:
     schedule = None
+    logging.info("⚠️ Schedule library not found, using simple mode")
 
 # --- CONFIGURA ---
 KEYWORDS = re.compile(r"(remote|telecommute|work from home).*(junior|entry.level|graduate|associate|trainee)?.*(data scientist|data engineer|quantitative developer|quant developer|quantitative analyst|quant analyst)|"
@@ -51,9 +66,15 @@ FEEDS = [
     # RemoteJobs.com - General
     "https://remotejobs.com/rss",
 ]
-EMAIL_FROM = os.getenv("EMAIL_FROM")
-EMAIL_TO = os.getenv("EMAIL_TO")
-APP_PASSWORD = os.getenv("APP_PASSWORD")  # App Password desde variables de entorno
+EMAIL_FROM = os.getenv("EMAIL_USER") or "jose.trader89@hotmail.com"
+EMAIL_TO = os.getenv("EMAIL_TO") or EMAIL_FROM  # Si no se especifica, enviar al mismo remitente
+APP_PASSWORD = os.getenv("EMAIL_PASS")  # App Password desde variables de entorno
+
+# Verificamos antes de continuar
+if not EMAIL_FROM:
+    logging.error("EMAIL_USER not set! Using default jose.trader89@hotmail.com")
+if not APP_PASSWORD:
+    logging.error("EMAIL_PASS not set! Email sending will fail!")
 # -----------------
 
 def find_matches():
@@ -158,31 +179,65 @@ def run_bot():
     print(f"=== JOB BOT FINISHED === {datetime.now()}")
 
 if __name__ == "__main__":
-    print("🚀 Job Bot Worker Service Started")
-    print("⏰ Scheduled to run at 8:00 AM and 8:00 PM VET")
-    print("🌍 VET = UTC-4, so running at 12:00 PM and 12:00 AM UTC")
-    
-    # Ejecutar inmediatamente para probar
-    print("🧪 Running test execution...")
-    run_bot()
-    
-    if schedule:
-        # Programar las ejecuciones
-        schedule.every().day.at("12:00").do(run_bot)  # 8:00 AM VET
-        schedule.every().day.at("00:00").do(run_bot)  # 8:00 PM VET
+    try:
+        # Verificar variables de entorno
+        if not os.getenv("EMAIL_USER"):
+            logging.error("⚠️ EMAIL_USER environment variable not set!")
+            print("⚠️ EMAIL_USER environment variable not set!")
+        if not os.getenv("EMAIL_PASS"):
+            logging.error("⚠️ EMAIL_PASS environment variable not set!")
+            print("⚠️ EMAIL_PASS environment variable not set!")
+            
+        print("🚀 Job Bot Worker Service Started")
+        logging.info("🚀 Job Bot Worker Service Started")
+        print("⏰ Scheduled to run at 8:00 AM and 8:00 PM VET")
+        print("🌍 VET = UTC-4, so running at 12:00 PM and 12:00 AM UTC")
         
-        print("⏳ Worker ready, waiting for scheduled times...")
+        # Ejecutar inmediatamente para probar
+        print("🧪 Running test execution...")
+        logging.info("🧪 Running test execution...")
         
-        # Loop principal
-        while True:
-            schedule.run_pending()
-            time.sleep(60)  # Revisar cada minuto
-    else:
-        print("Schedule not available, running in simple mode...")
-        print("Bot will run every 8 hours")
-        
-        # Loop simple cada 8 horas
-        while True:
-            time.sleep(8 * 60 * 60)  # 8 horas
-            print("🔄 Running scheduled execution...")
+        try:
             run_bot()
+            logging.info("✅ Initial execution completed successfully")
+        except Exception as e:
+            logging.error(f"❌ Error in initial execution: {str(e)}")
+            logging.error(traceback.format_exc())
+            print(f"❌ Error in initial execution: {str(e)}")
+        
+        if schedule:
+            # Programar las ejecuciones
+            schedule.every().day.at("12:00").do(run_bot)  # 8:00 AM VET
+            schedule.every().day.at("00:00").do(run_bot)  # 8:00 PM VET
+            
+            print("⏳ Worker ready, waiting for scheduled times...")
+            logging.info("⏳ Worker ready, waiting for scheduled times...")
+            
+            # Loop principal
+            while True:
+                try:
+                    schedule.run_pending()
+                except Exception as e:
+                    logging.error(f"❌ Error in schedule run: {str(e)}")
+                    logging.error(traceback.format_exc())
+                time.sleep(60)  # Revisar cada minuto
+        else:
+            print("Schedule not available, running in simple mode...")
+            logging.info("Schedule not available, running in simple mode...")
+            print("Bot will run every 8 hours")
+            
+            # Loop simple cada 8 horas
+            while True:
+                time.sleep(8 * 60 * 60)  # 8 horas
+                print("🔄 Running scheduled execution...")
+                logging.info("🔄 Running scheduled execution...")
+                try:
+                    run_bot()
+                    logging.info("✅ Scheduled execution completed successfully")
+                except Exception as e:
+                    logging.error(f"❌ Error in scheduled execution: {str(e)}")
+                    logging.error(traceback.format_exc())
+    except Exception as e:
+        logging.error(f"❌ Critical error in main: {str(e)}")
+        logging.error(traceback.format_exc())
+        print(f"❌ Critical error in main: {str(e)}")
