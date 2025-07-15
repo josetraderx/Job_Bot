@@ -2,12 +2,24 @@ import feedparser, re, smtplib, os, time, sys, traceback
 from email.message import EmailMessage
 from datetime import date, datetime
 
-# Configurar logging extensivo
+# Configurar logging extremadamente detallado
 import logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.DEBUG,  # Nivel DEBUG para máximo detalle
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)  # Asegurar que salga a stdout para los logs de Railway
+    ]
 )
+
+# Forzar impresión inmediata sin buffering
+print = lambda *args, **kwargs: __builtins__.print(*args, **kwargs, flush=True)
+
+# Información del entorno
+logging.info(f"Python version: {sys.version}")
+logging.info(f"Platform: {sys.platform}")
+logging.info(f"Current directory: {os.getcwd()}")
+logging.info(f"Environment variables: {[k for k in os.environ.keys()]}")
 
 # Capturar errores no manejados
 def log_uncaught_exceptions(exc_type, exc_value, exc_traceback):
@@ -82,18 +94,24 @@ def find_matches():
     seen_links = set()  # Para evitar duplicados
     
     print(f"Searching {len(FEEDS)} RSS feeds...")
+    logging.info(f"Searching {len(FEEDS)} RSS feeds...")
     
     for i, url in enumerate(FEEDS, 1):
         try:
-            print(f"[{i}/{len(FEEDS)}] Checking feed...")
+            print(f"[{i}/{len(FEEDS)}] Checking feed: {url}")
+            logging.info(f"[{i}/{len(FEEDS)}] Checking feed: {url}")
+            
             feed = feedparser.parse(url)
+            logging.debug(f"Feed parsed, status: {feed.get('status', 'unknown')}")
             
             if hasattr(feed, 'bozo') and feed.bozo:
                 print(f"[{i}/{len(FEEDS)}] Feed has parsing issues, skipping")
+                logging.warning(f"[{i}/{len(FEEDS)}] Feed has parsing issues: {feed.get('bozo_exception', 'unknown error')}")
                 continue
                 
             entries_count = len(feed.entries)
             print(f"[{i}/{len(FEEDS)}] Found {entries_count} entries")
+            logging.info(f"[{i}/{len(FEEDS)}] Found {entries_count} entries")
                 
             for entry in feed.entries:
                 # Evitar duplicados por URL
@@ -180,20 +198,36 @@ def run_bot():
 
 if __name__ == "__main__":
     try:
-        # Verificar variables de entorno
-        if not os.getenv("EMAIL_USER"):
-            logging.error("⚠️ EMAIL_USER environment variable not set!")
-            print("⚠️ EMAIL_USER environment variable not set!")
-        if not os.getenv("EMAIL_PASS"):
-            logging.error("⚠️ EMAIL_PASS environment variable not set!")
-            print("⚠️ EMAIL_PASS environment variable not set!")
+        # Anunciar inicio para saber que el script arrancó
+        print("=" * 50)
+        print("INICIANDO JOB BOT - DIAGNOSTICO DETALLADO")
+        print("=" * 50)
+        logging.info("SCRIPT EXECUTION STARTED")
+        
+        # Verificar variables de entorno con MUY alta visibilidad
+        print("\n=== VERIFICACIÓN DE VARIABLES DE ENTORNO ===")
+        env_vars = {
+            "EMAIL_USER": os.getenv("EMAIL_USER"),
+            "EMAIL_PASS": "***" if os.getenv("EMAIL_PASS") else None,
+            "EMAIL_TO": os.getenv("EMAIL_TO"),
+            "RAILWAY_STATIC_URL": os.getenv("RAILWAY_STATIC_URL"),
+            "RAILWAY_PUBLIC_DOMAIN": os.getenv("RAILWAY_PUBLIC_DOMAIN")
+        }
+        
+        # Mostrar todas las variables
+        for var, value in env_vars.items():
+            status = "✅ SET" if value else "❌ NOT SET"
+            print(f"{var}: {status}")
+            if not value and var in ["EMAIL_USER", "EMAIL_PASS"]:
+                logging.critical(f"CRITICAL: {var} environment variable not set!")
+                print(f"⚠️ CRITICAL ERROR: {var} environment variable not set!")
             
-        print("🚀 Job Bot Single Run Mode")
+        print("\n🚀 Job Bot Single Run Mode")
         logging.info("🚀 Job Bot Single Run Mode")
         
         # Ejecutar una sola vez y terminar (para Railway)
-        print("🧪 Running job search...")
-        logging.info("🧪 Running job search...")
+        print("🧪 Running job search with super-verbose logging...")
+        logging.info("🧪 Running job search with super-verbose logging...")
         
         try:
             run_bot()
