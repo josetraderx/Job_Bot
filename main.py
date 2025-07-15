@@ -55,13 +55,19 @@ def find_matches():
     matches = []
     seen_links = set()  # Para evitar duplicados
     
-    for url in FEEDS:
+    print(f"Searching {len(FEEDS)} RSS feeds...")
+    
+    for i, url in enumerate(FEEDS, 1):
         try:
-            print(f"Checking feed...")
+            print(f"[{i}/{len(FEEDS)}] Checking feed...")
             feed = feedparser.parse(url)
             
             if hasattr(feed, 'bozo') and feed.bozo:
+                print(f"[{i}/{len(FEEDS)}] Feed has parsing issues, skipping")
                 continue
+                
+            entries_count = len(feed.entries)
+            print(f"[{i}/{len(FEEDS)}] Found {entries_count} entries")
                 
             for entry in feed.entries:
                 # Evitar duplicados por URL
@@ -71,8 +77,10 @@ def find_matches():
                 if KEYWORDS.search(entry.title) or (hasattr(entry, 'description') and KEYWORDS.search(entry.description)):
                     matches.append(f"• {entry.title}\n  {entry.link}")
                     seen_links.add(entry.link)
+                    print(f"[{i}/{len(FEEDS)}] ✅ Match found: {entry.title[:50]}...")
                     
         except Exception as e:
+            print(f"[{i}/{len(FEEDS)}] Error: {str(e)}")
             continue
             
     return matches
@@ -125,14 +133,24 @@ def send_email(lines):
         raise
 
 if __name__ == "__main__":
-    print("Starting job search...")
+    print("=== JOB BOT STARTED ===")
+    print(f"EMAIL_FROM: {EMAIL_FROM}")
+    print(f"EMAIL_TO: {EMAIL_TO}")
+    print(f"APP_PASSWORD: {'*' * len(APP_PASSWORD) if APP_PASSWORD else 'None'}")
+    print(f"Total feeds: {len(FEEDS)}")
     
     jobs = find_matches()
+    print(f"Found {len(jobs)} total jobs")
     
     if jobs:
+        print("Sending email...")
         send_email(jobs)
-        print(f"✅ Sent {len(jobs)} jobs.")
+        print(f"✅ Process completed! Sent {len(jobs)} jobs.")
     else:
-        print("❌ No jobs found.")
+        print("❌ No jobs found matching criteria.")
         
-    print("Bot finished.")
+    print("=== JOB BOT FINISHED ===")
+    
+    # Mantener el contenedor vivo un poco más para ver logs
+    import time
+    time.sleep(5)
