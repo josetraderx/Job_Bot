@@ -1,6 +1,11 @@
-import feedparser, re, smtplib, os, time, schedule
+import feedparser, re, smtplib, os, time
 from email.message import EmailMessage
 from datetime import date, datetime
+
+try:
+    import schedule
+except ImportError:
+    schedule = None
 
 # --- CONFIGURA ---
 KEYWORDS = re.compile(r"(remote|telecommute|work from home).*(junior|entry.level|graduate|associate|trainee)?.*(data scientist|data engineer|quantitative developer|quant developer|quantitative analyst|quant analyst)|"
@@ -157,17 +162,27 @@ if __name__ == "__main__":
     print("⏰ Scheduled to run at 8:00 AM and 8:00 PM VET")
     print("🌍 VET = UTC-4, so running at 12:00 PM and 12:00 AM UTC")
     
-    # Programar las ejecuciones
-    schedule.every().day.at("12:00").do(run_bot)  # 8:00 AM VET
-    schedule.every().day.at("00:00").do(run_bot)  # 8:00 PM VET
-    
     # Ejecutar inmediatamente para probar
     print("🧪 Running test execution...")
     run_bot()
     
-    print("⏳ Worker ready, waiting for scheduled times...")
-    
-    # Loop principal
-    while True:
-        schedule.run_pending()
-        time.sleep(60)  # Revisar cada minuto
+    if schedule:
+        # Programar las ejecuciones
+        schedule.every().day.at("12:00").do(run_bot)  # 8:00 AM VET
+        schedule.every().day.at("00:00").do(run_bot)  # 8:00 PM VET
+        
+        print("⏳ Worker ready, waiting for scheduled times...")
+        
+        # Loop principal
+        while True:
+            schedule.run_pending()
+            time.sleep(60)  # Revisar cada minuto
+    else:
+        print("Schedule not available, running in simple mode...")
+        print("Bot will run every 8 hours")
+        
+        # Loop simple cada 8 horas
+        while True:
+            time.sleep(8 * 60 * 60)  # 8 horas
+            print("🔄 Running scheduled execution...")
+            run_bot()
