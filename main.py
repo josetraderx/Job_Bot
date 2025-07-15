@@ -188,55 +188,25 @@ if __name__ == "__main__":
             logging.error("⚠️ EMAIL_PASS environment variable not set!")
             print("⚠️ EMAIL_PASS environment variable not set!")
             
-        print("🚀 Job Bot Worker Service Started")
-        logging.info("🚀 Job Bot Worker Service Started")
-        print("⏰ Scheduled to run at 8:00 AM and 8:00 PM VET")
-        print("🌍 VET = UTC-4, so running at 12:00 PM and 12:00 AM UTC")
+        print("🚀 Job Bot Single Run Mode")
+        logging.info("🚀 Job Bot Single Run Mode")
         
-        # Ejecutar inmediatamente para probar
-        print("🧪 Running test execution...")
-        logging.info("🧪 Running test execution...")
+        # Ejecutar una sola vez y terminar (para Railway)
+        print("🧪 Running job search...")
+        logging.info("🧪 Running job search...")
         
         try:
             run_bot()
-            logging.info("✅ Initial execution completed successfully")
+            logging.info("✅ Execution completed successfully")
         except Exception as e:
-            logging.error(f"❌ Error in initial execution: {str(e)}")
+            logging.error(f"❌ Error in execution: {str(e)}")
             logging.error(traceback.format_exc())
-            print(f"❌ Error in initial execution: {str(e)}")
+            print(f"❌ Error in execution: {str(e)}")
+            
+        # Terminar normalmente
+        print("✅ Job search complete. Configure Railway Cron for scheduled runs.")
+        logging.info("✅ Job search complete. Configure Railway Cron for scheduled runs.")
         
-        if schedule:
-            # Programar las ejecuciones
-            schedule.every().day.at("12:00").do(run_bot)  # 8:00 AM VET
-            schedule.every().day.at("00:00").do(run_bot)  # 8:00 PM VET
-            
-            print("⏳ Worker ready, waiting for scheduled times...")
-            logging.info("⏳ Worker ready, waiting for scheduled times...")
-            
-            # Loop principal
-            while True:
-                try:
-                    schedule.run_pending()
-                except Exception as e:
-                    logging.error(f"❌ Error in schedule run: {str(e)}")
-                    logging.error(traceback.format_exc())
-                time.sleep(60)  # Revisar cada minuto
-        else:
-            print("Schedule not available, running in simple mode...")
-            logging.info("Schedule not available, running in simple mode...")
-            print("Bot will run every 8 hours")
-            
-            # Loop simple cada 8 horas
-            while True:
-                time.sleep(8 * 60 * 60)  # 8 horas
-                print("🔄 Running scheduled execution...")
-                logging.info("🔄 Running scheduled execution...")
-                try:
-                    run_bot()
-                    logging.info("✅ Scheduled execution completed successfully")
-                except Exception as e:
-                    logging.error(f"❌ Error in scheduled execution: {str(e)}")
-                    logging.error(traceback.format_exc())
     except Exception as e:
         logging.error(f"❌ Critical error in main: {str(e)}")
         logging.error(traceback.format_exc())
