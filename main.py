@@ -78,9 +78,20 @@ FEEDS = [
     # RemoteJobs.com - General
     "https://remotejobs.com/rss",
 ]
-EMAIL_FROM = os.getenv("EMAIL_USER") or "jose.trader89@hotmail.com"
-EMAIL_TO = os.getenv("EMAIL_TO") or EMAIL_FROM  # Si no se especifica, enviar al mismo remitente
-APP_PASSWORD = os.getenv("EMAIL_PASS")  # App Password desde variables de entorno
+# Buscar variables con posibles espacios en el nombre
+def get_env_var(name):
+    """Busca una variable incluso si tiene espacios en el nombre"""
+    value = os.getenv(name)
+    if not value:
+        # Buscar con espacios
+        for env_name in os.environ:
+            if env_name.strip() == name:
+                return os.environ[env_name]
+    return value
+
+EMAIL_FROM = get_env_var("EMAIL_USER") or "jose.trader89@hotmail.com"
+EMAIL_TO = get_env_var("EMAIL_TO") or EMAIL_FROM  # Si no se especifica, enviar al mismo remitente
+APP_PASSWORD = get_env_var("EMAIL_PASS")  # App Password desde variables de entorno
 
 # Verificamos antes de continuar
 if not EMAIL_FROM:
@@ -206,12 +217,18 @@ if __name__ == "__main__":
         
         # Verificar variables de entorno con MUY alta visibilidad
         print("\n=== VERIFICACIÓN DE VARIABLES DE ENTORNO ===")
+        
+        # Mostrar todas las variables de entorno para diagnóstico (solo nombres)
+        print("\n=== TODAS LAS VARIABLES DE ENTORNO (EXACTAS) ===")
+        for env_name in os.environ:
+            print(f"'{env_name}'")
+            
         env_vars = {
-            "EMAIL_USER": os.getenv("EMAIL_USER"),
-            "EMAIL_PASS": "***" if os.getenv("EMAIL_PASS") else None,
-            "EMAIL_TO": os.getenv("EMAIL_TO"),
-            "RAILWAY_STATIC_URL": os.getenv("RAILWAY_STATIC_URL"),
-            "RAILWAY_PUBLIC_DOMAIN": os.getenv("RAILWAY_PUBLIC_DOMAIN")
+            "EMAIL_USER": get_env_var("EMAIL_USER"),
+            "EMAIL_PASS": "***" if get_env_var("EMAIL_PASS") else None,
+            "EMAIL_TO": get_env_var("EMAIL_TO"),
+            "RAILWAY_STATIC_URL": get_env_var("RAILWAY_STATIC_URL"),
+            "RAILWAY_PUBLIC_DOMAIN": get_env_var("RAILWAY_PUBLIC_DOMAIN")
         }
         
         # Mostrar todas las variables
